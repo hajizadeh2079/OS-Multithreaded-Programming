@@ -1,6 +1,5 @@
 *.out
 *.o
 serial/datasets/
-serial/datasets/
+parallel/datasets/
 .vscode/
-serial/main
