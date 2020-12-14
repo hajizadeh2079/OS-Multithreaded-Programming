@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <iomanip>
+#include <algorithm>
 using namespace std;
 
 
@@ -14,9 +16,10 @@ char TRAIN_CSV[10] = "train.csv";
 char WEIGHTS_CSV[12] = "weights.csv";
 
 
-void calc_min_max(vector<vector<float>> &mobiles, vector<float> &mins, vector<float> &maxs);
-void read_csv_train(vector<vector<float>> &mobiles, char *directory);
-void read_csv_weights(vector<float> &weights, char *directory);
+int classifier(vector<vector<long double>> &mobiles, vector<vector<long double>> &weights, vector<long double> &mins, vector<long double> &maxs);
+void calc_min_max(vector<vector<long double>> &mobiles, vector<long double> &mins, vector<long double> &maxs);
+void read_csv_train(vector<vector<long double>> &mobiles, char *directory);
+void read_csv_weights(vector<vector<long double>> &weights, char *directory);
 
 
 int main(int argc, char *argv[]) {
@@ -26,21 +29,26 @@ int main(int argc, char *argv[]) {
     strcpy(path_weights, argv[1]);
     strncat(path_train, TRAIN_CSV, strlen(TRAIN_CSV));
     strncat(path_weights, WEIGHTS_CSV, strlen(WEIGHTS_CSV));
-    vector<vector<float>> mobiles;
-    vector<float> weights, mins, maxs;
+    vector<vector<long double>> mobiles, weights;
+    vector<long double> mins, maxs;
     read_csv_train(mobiles, path_train);
     read_csv_weights(weights, path_weights);
     calc_min_max(mobiles, mins, maxs);
+    int correct_detected = classifier(mobiles, weights, mins, maxs);
+    int num_of_samples = mobiles.size();
+    long double accuracy = (long double)correct_detected / (long double)num_of_samples * 100;
+    cout << setprecision(2) << fixed;
+    cout << "Accuracy: " << accuracy << "%" << endl;
     return 0;
 }
 
 
-void read_csv_train(vector<vector<float>> &mobiles, char *directory) {
+void read_csv_train(vector<vector<long double>> &mobiles, char *directory) {
     ifstream csvfile(directory);
     string str, feature;
     getline(csvfile, str);
     while (getline(csvfile, str)) {
-        vector<float> mobile;
+        vector<long double> mobile;
         stringstream s(str);
         while (getline(s, feature, ','))
             mobile.push_back(stold(feature));
@@ -50,22 +58,25 @@ void read_csv_train(vector<vector<float>> &mobiles, char *directory) {
 }
 
 
-void read_csv_weights(vector<float> &weights, char *directory) {
+void read_csv_weights(vector<vector<long double>> &weights, char *directory) {
     ifstream csvfile(directory);
-    string str, weight;
+    string str, temp;
     getline(csvfile, str);
-    getline(csvfile, str);
-    stringstream s(str);
-    while (getline(s, weight, ','))
-        weights.push_back(stold(weight));
+    while (getline(csvfile, str)) {
+        vector<long double> weight;
+        stringstream s(str);
+        while (getline(s, temp, ','))
+            weight.push_back(stold(temp));
+        weights.push_back(weight);
+    }
     csvfile.close();
 }
 
 
-void calc_min_max(vector<vector<float>> &mobiles, vector<float> &mins, vector<float> &maxs) {
+void calc_min_max(vector<vector<long double>> &mobiles, vector<long double> &mins, vector<long double> &maxs) {
     for (int j = 0; j < mobiles[0].size(); j++) {
-        float min = 1000000000;
-        float max = -1;
+        long double min = 1000000000;
+        long double max = -1000000000;
         for (int i = 0; i < mobiles.size(); i++) {
             if (mobiles[i][j] > max)
                 max = mobiles[i][j];
@@ -75,4 +86,26 @@ void calc_min_max(vector<vector<float>> &mobiles, vector<float> &mins, vector<fl
         mins.push_back(min);
         maxs.push_back(max);
     }
+}
+
+
+int classifier(vector<vector<long double>> &mobiles, vector<vector<long double>> &weights, vector<long double> &mins, vector<long double> &maxs) {
+    int correct_detected = 0;
+    int price_range, i, j, k;
+    long double score, max_score;
+    for (i = 0; i < mobiles.size(); i++) {
+        max_score = -1000000000;
+        for (k = 0; k < weights.size(); k++) {
+            score = weights[k][weights[0].size() -1];
+            for (j = 0; j < mobiles[i].size() - 1; j++)
+                score += (((mobiles[i][j] - mins[j]) / (maxs[j] - mins[j])) * weights[k][j]);
+            if (score > max_score) {
+                price_range = k;
+                max_score = score;
+            }
+        }
+        if (price_range == mobiles[i][mobiles[0].size() - 1])
+            correct_detected += 1;
+    }
+    return correct_detected;
 }
