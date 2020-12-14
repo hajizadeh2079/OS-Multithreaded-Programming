@@ -1,0 +1,4 @@
+*.out
+*.o
+serial/datasets/
+serial/datasets/
