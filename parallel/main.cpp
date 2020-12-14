@@ -12,36 +12,46 @@
 #include <pthread.h>
 using namespace std;
 
-#define NUMBER_OF_THREADS 4
-char TRAIN_0_CSV[12] = "train_0.csv";
-char TRAIN_1_CSV[12] = "train_1.csv";
-char TRAIN_2_CSV[12] = "train_2.csv";
-char TRAIN_3_CSV[12] = "train_3.csv";
-char WEIGHTS_CSV[12] = "weights.csv";
 
-/*
 int classifier(vector<vector<long double>> &mobiles, vector<vector<long double>> &weights, vector<long double> &mins, vector<long double> &maxs);
 void calc_min_max(vector<vector<long double>> &mobiles, vector<long double> &mins, vector<long double> &maxs);
 void read_csv_train(vector<vector<long double>> &mobiles, char *directory);
 void read_csv_weights(vector<vector<long double>> &weights, char *directory);
-*/
+void* readFile_calcMinMax(void* data);
+
+
+#define NUMBER_OF_THREADS 4
+
+char TRAIN_CSV[NUMBER_OF_THREADS][12] = {"train_0.csv", "train_1.csv", "train_2.csv","train_3.csv"};
+char WEIGHTS_CSV[12] = "weights.csv";
+
+vector<vector<long double>> weights;
+vector<vector<long double>> mobiles[NUMBER_OF_THREADS];
+vector<long double> mins[NUMBER_OF_THREADS];
+vector<long double> maxs[NUMBER_OF_THREADS];
+
+struct thread_data {
+   int thread_id;
+   char* path_train;
+};
+struct thread_data thread_data_array[NUMBER_OF_THREADS];
+
 
 int main(int argc, char *argv[]) {
-    pthread_t thread[NUMBER_OF_THREADS];
-	for(long tid = 0; tid < NUMBER_OF_THREADS; tid++) {
-        
-	}
-/*    char path_train[256];
+    pthread_t threads[NUMBER_OF_THREADS];
+    for(int tid = 0; tid < NUMBER_OF_THREADS; tid++) {
+        char path_train[256];
+        strcpy(path_train, argv[1]);
+        strncat(path_train, TRAIN_CSV[tid], strlen(TRAIN_CSV[tid]));
+        thread_data_array[tid].thread_id = tid;
+        thread_data_array[tid].path_train = path_train;
+        pthread_create(&threads[tid], NULL, readFile_calcMinMax, (void*)&thread_data_array[tid]);
+    }
     char path_weights[256];
-    strcpy(path_train, argv[1]);
     strcpy(path_weights, argv[1]);
-    strncat(path_train, TRAIN_CSV, strlen(TRAIN_CSV));
     strncat(path_weights, WEIGHTS_CSV, strlen(WEIGHTS_CSV));
-    vector<vector<long double>> mobiles, weights;
-    vector<long double> mins, maxs;
-    read_csv_train(mobiles, path_train);
     read_csv_weights(weights, path_weights);
-    calc_min_max(mobiles, mins, maxs);
+/*
     int correct_detected = classifier(mobiles, weights, mins, maxs);
     int num_of_samples = mobiles.size();
     long double accuracy = (long double)correct_detected / (long double)num_of_samples * 100;
@@ -50,7 +60,16 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-/*
+
+void* readFile_calcMinMax(void* data) {
+    struct thread_data* my_data = (struct thread_data*) data;
+    int thread_id = my_data->thread_id;
+	char* path_train = my_data->path_train;
+    read_csv_train(mobiles[thread_id], path_train);
+    calc_min_max(mobiles[thread_id], mins[thread_id], maxs[thread_id]);
+}
+
+
 void read_csv_train(vector<vector<long double>> &mobiles, char *directory) {
     ifstream csvfile(directory);
     string str, feature;
@@ -116,4 +135,4 @@ int classifier(vector<vector<long double>> &mobiles, vector<vector<long double>>
             correct_detected += 1;
     }
     return correct_detected;
-} */
+}
