@@ -9,12 +9,14 @@
 #include <sstream>
 using namespace std;
 
+
 char TRAIN_CSV[10] = "train.csv";
 char WEIGHTS_CSV[12] = "weights.csv";
 
 
-void read_csv_train(vector<vector<long double>> &mobiles, char *directory);
-void read_csv_weights(vector<long double> &weights, char *directory);
+void calc_min_max(vector<vector<float>> &mobiles, vector<float> &mins, vector<float> &maxs);
+void read_csv_train(vector<vector<float>> &mobiles, char *directory);
+void read_csv_weights(vector<float> &weights, char *directory);
 
 
 int main(int argc, char *argv[]) {
@@ -24,26 +26,21 @@ int main(int argc, char *argv[]) {
     strcpy(path_weights, argv[1]);
     strncat(path_train, TRAIN_CSV, strlen(TRAIN_CSV));
     strncat(path_weights, WEIGHTS_CSV, strlen(WEIGHTS_CSV));
-    vector<vector<long double>> mobiles;
-    vector<long double> weights;
+    vector<vector<float>> mobiles;
+    vector<float> weights, mins, maxs;
     read_csv_train(mobiles, path_train);
     read_csv_weights(weights, path_weights);
-    for (int i = 0; i < mobiles.size(); i++) {
-        for (int j = 0; j < mobiles[i].size(); j++) {
-            cout << mobiles[i][j] << " ";
-        }
-        cout << endl;
-    }
+    calc_min_max(mobiles, mins, maxs);
     return 0;
 }
 
 
-void read_csv_train(vector<vector<long double>> &mobiles, char *directory) {
+void read_csv_train(vector<vector<float>> &mobiles, char *directory) {
     ifstream csvfile(directory);
     string str, feature;
     getline(csvfile, str);
     while (getline(csvfile, str)) {
-        vector<long double> mobile;
+        vector<float> mobile;
         stringstream s(str);
         while (getline(s, feature, ','))
             mobile.push_back(stold(feature));
@@ -53,7 +50,7 @@ void read_csv_train(vector<vector<long double>> &mobiles, char *directory) {
 }
 
 
-void read_csv_weights(vector<long double> &weights, char *directory) {
+void read_csv_weights(vector<float> &weights, char *directory) {
     ifstream csvfile(directory);
     string str, weight;
     getline(csvfile, str);
@@ -62,4 +59,20 @@ void read_csv_weights(vector<long double> &weights, char *directory) {
     while (getline(s, weight, ','))
         weights.push_back(stold(weight));
     csvfile.close();
+}
+
+
+void calc_min_max(vector<vector<float>> &mobiles, vector<float> &mins, vector<float> &maxs) {
+    for (int j = 0; j < mobiles[0].size(); j++) {
+        float min = 1000000000;
+        float max = -1;
+        for (int i = 0; i < mobiles.size(); i++) {
+            if (mobiles[i][j] > max)
+                max = mobiles[i][j];
+            if (mobiles[i][j] < min)
+                min = mobiles[i][j];
+        }
+        mins.push_back(min);
+        maxs.push_back(max);
+    }
 }
